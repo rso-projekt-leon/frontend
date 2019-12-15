@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+    <h1>Upload data</h1>
+    <form action="/handle_upload" method="post" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        <p>
+            {{ form.dataset_name.label }}<br>
+            {{ form.dataset_name(size=32) }}
+        </p>
+        <p>
+            {{ form.dataset_csv }}
+        </p>
+    
+        <p><input id="submit" name="submit" type="submit" value="Upload"></p>
+    </form>
+{% endblock %}
