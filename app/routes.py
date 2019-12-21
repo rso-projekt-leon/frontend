@@ -1,4 +1,4 @@
-from flask import render_template, flash, redirect
+from flask import render_template, flash, redirect, request
 from app import app
 import io
 import os
@@ -17,6 +17,7 @@ class DatasetTable(Table):
     file_name = Col('File Name')
     number_of_lines = Col('Number of lines')
     dataset_size = Col('Dataset Size (MB)')
+    classes = ['table']
 
 
 
@@ -55,7 +56,7 @@ def handle_upload():
 
         if r_upload.status_code == 201:
             flash(f'Upload succesful file name {filename} and dataset name: {d_name}')
-            return redirect('/index')
+            return redirect('/data')
         else:
             return "Error uploading file! Error type:\n " + r_upload.text
     else:
@@ -65,21 +66,24 @@ def handle_upload():
 def data(): 
     results = []
     data_url = app.config['DATA_URL']
-    r = requests.get(data_url)
-
-    if r.status_code == 200:
-        results = r.json()
-        results_raw = results['data']['datasets']
-    else:
+    try:
+        r = requests.get(data_url)
+        if r.status_code == 200:
+            results = r.json()
+            results_raw = results['data']['datasets']
+        else:
+            flash('Error getting results!')
+            return redirect('/')    
+    except:
         flash('Error getting results!')
-        return redirect('/')
+        return redirect('/')  
 
     results = []
     for result in results_raw:
         results.append(dict(dataset_name=result['dataset_name'],
                             file_name=result['file_name'],
                             number_of_lines=result['dataset_lenght'],
-                            dataset_size=result['dataset_size']))
+                            dataset_size=round(result['dataset_size'],3)))
 
     if not results:
         flash('No results found!')
@@ -87,12 +91,30 @@ def data():
     else:
         # display results
         table = DatasetTable(results)
-        table.border = True
         return render_template('data.html', title='Data', table=table)
 
 
+@app.route('/delete_dataset', methods=['POST'])
+def delete_dataset():
+    if request.method == 'POST':
+        dataset_name = request.form.get('dataset_name')
+        print(dataset_name)
+    
+    data_url = app.config['DATA_URL']
+    delete_url = data_url + '/' + dataset_name
 
-        
+    try:
+        r_delete = requests.delete(delete_url)
+        if r_delete.status_code == 200:
+            flash(f'Delete successful: dataset name: {dataset_name}')
+        else:
+            flash(f'Dataset with name {dataset_name} does not exist!')
+    except:
+        flash('Error deleting dataset!')
+        return redirect('/')
+
+    return redirect('/data')
+    
 
     
 

@@ -1,7 +1,22 @@
 {% extends "base.html" %}
 
 {% block content %}
-    <h1>Datasets:</h1>
-    {{ table }}
+    <div class="container">
+        <h1>Datasets:</h1>
+        {{ table }}
+    </div>
+
+    <div class="container">
+        <h3>Delete dataset</h3>
+        <p>Enter the dataset name to be deleted.</p>
+        <form class="form-inline" action="/delete_dataset" method="post">
+          <div class="form-group">
+            <label></label>Dataset name:</label>
+            <input class="form-control" id="dataset_name" placeholder="Enter name" name="dataset_name">
+          </div>
+          <button type="submit" class="btn btn-danger">Delete</button>
+        </form>
+      </div>
+
 
 {% endblock %}

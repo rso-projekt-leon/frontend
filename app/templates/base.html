@@ -1,27 +1,41 @@
+<!doctype html>
 <html>
     <head>
-      {% if title %}
-      <title>{{ title }} - Data platform</title>
-      {% else %}
-      <title>Welcome to Data platform</title>
-      {% endif %}
-    </head>
+        <!-- Required meta tags -->
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/css/bootstrap.min.css">
+        <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+        <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.1/js/bootstrap.min.js"></script>
+        {% if title %}
+        <title>{{ title }} - Data platform</title>
+        {% else %}
+        <title>Welcome to Data platform</title>
+        {% endif %}
+        </head>
     <body>
-        <div>
-            Data platform:
-            <a href="/index">Home</a>
-            <a href="/login">Login</a>
-            <a href="/upload">Upload</a>
-            <a href="/data">Data</a>
-        </div>
-        <hr>
+        <nav class="navbar navbar-default">
+            <div class="container-fluid">
+              <div class="navbar-header">
+                <a class="navbar-brand" href="/index">Dataplatform</a>
+              </div>
+              <ul class="nav navbar-nav">
+                <li class="active"><a href="/index">Home</a></li>
+                <li><a href="/data">Data</a></li>
+                <li><a href="/upload">Upload</a></li>
+                <li><a href="/login">Login</a></li>
+              </ul>
+            </div>
+        </nav>
         {% with messages = get_flashed_messages() %}
         {% if messages %}
-        <ul>
+        <div class="alert alert-danger" role="alert">
             {% for message in messages %}
-            <li>{{ message }}</li>
+            <span class="glyphicon glyphicon-exclamation-sign" aria-hidden="true"></span>
+            <span class="sr-only">Error:</span>
+            {{ message }}
             {% endfor %}
-        </ul>
+        </div>
         {% endif %}
         {% endwith %}
         {% block content %}{% endblock %}
