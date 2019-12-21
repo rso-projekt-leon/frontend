@@ -6,8 +6,18 @@ import os
 import json
 import requests 
 from app.forms import LoginForm, DatasetForm
+from flask_table import Table, Col
 from werkzeug.utils import secure_filename
 from io import StringIO
+
+
+# Declare your table
+class DatasetTable(Table):
+    dataset_name = Col('Dataset Name')
+    file_name = Col('File Name')
+    number_of_lines = Col('Number of lines')
+    dataset_size = Col('Dataset Size (MB)')
+
 
 
 @app.route('/')
@@ -49,7 +59,38 @@ def handle_upload():
         else:
             return "Error uploading file! Error type:\n " + r_upload.text
     else:
-        return "Error uploading file! Type non supported"   
+        return "Error uploading file! Type non supported"
+
+@app.route('/data')
+def data(): 
+    results = []
+    data_url = app.config['DATA_URL']
+    r = requests.get(data_url)
+
+    if r.status_code == 200:
+        results = r.json()
+        results_raw = results['data']['datasets']
+    else:
+        flash('Error getting results!')
+        return redirect('/')
+
+    results = []
+    for result in results_raw:
+        results.append(dict(dataset_name=result['dataset_name'],
+                            file_name=result['file_name'],
+                            number_of_lines=result['dataset_lenght'],
+                            dataset_size=result['dataset_size']))
+
+    if not results:
+        flash('No results found!')
+        return redirect('/')
+    else:
+        # display results
+        table = DatasetTable(results)
+        table.border = True
+        return render_template('data.html', title='Data', table=table)
+
+
 
         
 
