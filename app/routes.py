@@ -8,6 +8,7 @@ import requests
 from app.forms import LoginForm, DatasetForm
 from flask_table import Table, Col
 from werkzeug.utils import secure_filename
+from flask import send_from_directory, abort
 from io import StringIO
 
 
@@ -147,6 +148,47 @@ def delete_dataset():
 
     return redirect('/data')
 
+
+
+@app.route('/download_dataset', methods=['POST'])
+def download_dataset():
+    if request.method == 'POST':
+        dataset_name = request.form.get('dataset_name')
+    
+    data_url = app.config['DATA_URL']
+    catalog_url = data_url + f'/{dataset_name}'
+
+    # pridobi filename
+    try:
+        r = requests.get(catalog_url, verify=False)
+        if r.status_code == 200:
+            results = r.json()
+            file_name = results['data']['datasets'][0]['file_name']
+        else:
+            flash('Error deleting results (no catalog connection)!')
+            return redirect('/')
+    except:
+        flash('Error deleting results!')
+        return redirect('/')
+
+    # shrani si file iz storage 
+    storage_url = app.config['STORAGE_URL'] + f'/{dataset_name}'
+    my_file_response = requests.get(
+                storage_url,
+                params={'filename': file_name},
+                verify=False
+            )
+
+    if my_file_response.status_code == 400:
+        abort(404)
+
+    path = f'{app.config["DOWNLOAD_FILE"]}/{file_name}'
+    open(path, 'wb').write(my_file_response.content)
+    
+    try:
+        return send_from_directory(app.config["DOWNLOAD_FILE"], filename=file_name, as_attachment=True)
+    except FileNotFoundError:
+        abort(404)
 
 
 
