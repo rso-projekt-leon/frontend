@@ -4,7 +4,7 @@ import io
 import os
 
 import json
-import requests 
+import requests
 from app.forms import LoginForm, DatasetForm
 from flask_table import Table, Col
 from werkzeug.utils import secure_filename
@@ -34,13 +34,13 @@ def login():
         flash('Login requested for user {}, remember_me={}'.format(
             form.username.data, form.remember_me.data))
         return redirect('/index')
-    return render_template('login.html', title='Sign In', form=form)    
+    return render_template('login.html', title='Sign In', form=form)
 
 @app.route('/upload', methods=['GET'])
 def upload():
     form = DatasetForm()
     return render_template('upload.html', title='Upload data', form=form)
-    
+
 
 @app.route('/handle_upload', methods=['POST'])
 def handle_upload():
@@ -52,31 +52,36 @@ def handle_upload():
 
         files = {'file': (filename, f.read(), d_name)}
         upload_url = app.config['UPLOAD_URL']
-        r_upload = requests.post(upload_url, files=files)
+        try:
+            r_upload = requests.post(upload_url, files=files, verify=False)
+        except:
+            flash(f'ERROR: no connection to upload-service')
+            return redirect('/')
 
         if r_upload.status_code == 201:
             flash(f'Upload succesful file name {filename} and dataset name: {d_name}')
             return redirect('/data')
         else:
-            return "Error uploading file! Error type:\n " + r_upload.text
+            flash("Error uploading file! Error type:\n " + r_upload.text)
+            return redirect('/')
     else:
         return "Error uploading file! Type non supported"
 
 @app.route('/data')
-def data(): 
+def data():
     results = []
     data_url = app.config['DATA_URL']
     try:
-        r = requests.get(data_url)
+        r = requests.get(data_url, verify=False)
         if r.status_code == 200:
             results = r.json()
             results_raw = results['data']['datasets']
         else:
             flash('Error getting results!')
-            return redirect('/')    
+            return redirect('/')
     except:
         flash('Error getting results!')
-        return redirect('/')  
+        return redirect('/')
 
     results = []
     for result in results_raw:
@@ -98,24 +103,51 @@ def data():
 def delete_dataset():
     if request.method == 'POST':
         dataset_name = request.form.get('dataset_name')
-        print(dataset_name)
-    
-    data_url = app.config['DATA_URL']
-    delete_url = data_url + '/' + dataset_name
 
+    data_url = app.config['DATA_URL']
+    delete_url = data_url + f'/{dataset_name}'
+    catalog_url = data_url + f'/{dataset_name}'
+
+    # pridobi filename
     try:
-        r_delete = requests.delete(delete_url)
-        if r_delete.status_code == 200:
-            flash(f'Delete successful: dataset name: {dataset_name}')
+        r = requests.get(catalog_url, verify=False)
+        if r.status_code == 200:
+            results = r.json()
+            file_name = results['data']['datasets'][0]['file_name']
         else:
-            flash(f'Dataset with name {dataset_name} does not exist!')
+            flash('Error deleting results (no catalog connection)!')
+            return redirect('/')
+    except:
+        flash('Error deleting results!')
+        return redirect('/')
+
+    # izbriši iz baze
+    try:
+        r_delete = requests.delete(delete_url, verify=False)
     except:
         flash('Error deleting dataset!')
         return redirect('/')
 
-    return redirect('/data')
-    
+    if r_delete.status_code == 200:
+        # izbriši iz  S3
+        try:
+            storage_url = app.config['STORAGE_URL'] + f'/{dataset_name}'
+            response = requests.delete(
+                storage_url,
+                params={'filename': file_name},
+                verify=False
+            )
+        except:
+            flash('Error deleting results (S3 connection)!')
+            return redirect('/')
 
-    
+        flash(f'Delete successful: dataset name: {dataset_name}')
+    else:
+        flash(f'Dataset with name {dataset_name} does not exist!')
+
+    return redirect('/data')
+
+
+
 
 
